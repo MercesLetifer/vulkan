@@ -38,8 +38,8 @@ void VulkanApp::createInstance()
 	VkInstanceCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledLayerCount = 0;
-	createInfo.enabledExtensionCount = 0;
+	createInfo.enabledLayerCount = 0;		// no layers
+	createInfo.enabledExtensionCount = 0;		// no extensions
 
 	if (vkCreateInstance(&createInfo, nullptr, &instance_) != VK_SUCCESS)
 		throw std::runtime_error("failed to create instance");
@@ -71,8 +71,8 @@ void VulkanApp::createDevice()
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-	deviceCreateInfo.enabledLayerCount = 0;
-	deviceCreateInfo.enabledExtensionCount = 0;
+	deviceCreateInfo.enabledLayerCount = 0;			// no layers
+	deviceCreateInfo.enabledExtensionCount = 0;		// no extensions
 	deviceCreateInfo.pEnabledFeatures = nullptr;
 
 	if (vkCreateDevice(physicalDevice_, &deviceCreateInfo, nullptr, &device_) != VK_SUCCESS)
@@ -83,6 +83,9 @@ void VulkanApp::mainLoop()
 {
 	while (!glfwWindowShouldClose(window_)) 
 		glfwPollEvents();
+	
+	glfwDestroyWindow(window);
+	glfwTerminate();
 }
 
 // help functions
