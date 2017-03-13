@@ -40,6 +40,10 @@ private:		// help functions
 	uint32_t getFamilyIndex();
 	void checkInstanceExtenstionSupport();
 	void checkDeviceExtensionSupport(VkPhysicalDevice);
+	// functions for creating swap chain
+	VkSurfaceCapabilitiesKHR getSurfaceCapabilities();
+	VkSurfaceFormatKHR getSurfaceFormat();
+	VkPresentModeKHR getPresentMode();
 
 	void showInfo();		// super help function for me, delete after relise
 

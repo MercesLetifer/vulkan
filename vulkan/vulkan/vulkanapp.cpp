@@ -112,23 +112,23 @@ void VulkanApp::createSurface()
 
 void VulkanApp::createSwapchain()
 {
-	// TODO: rewrite
-	VkSurfaceCapabilitiesKHR surfaceCapabilities = { };
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice_, surface_, &surfaceCapabilities);
+	auto capabilities = getSurfaceCapabilities();
+	auto format = getSurfaceFormat();
+	auto presentMode = getPresentMode();	
 	
  	VkSwapchainCreateInfoKHR createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = surface_;
-	createInfo.minImageCount = surfaceCapabilities.minImageCount + 1;
-	createInfo.imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
-	createInfo.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-	createInfo.imageExtent = surfaceCapabilities.currentExtent;	
+	createInfo.minImageCount = capabilities.minImageCount + 1;
+	createInfo.imageFormat = format.format;
+	createInfo.imageColorSpace = format.colorSpace;
+	createInfo.imageExtent = capabilities.currentExtent;	
 	createInfo.imageArrayLayers = 1;						
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.preTransform = surfaceCapabilities.currentTransform;		// no transform
+	createInfo.preTransform = capabilities.currentTransform;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
@@ -184,7 +184,7 @@ void VulkanApp::checkInstanceExtenstionSupport()
 				std::string errorStr = "instance don't support " 
 					+ std::string(ie) + " extension";
 				throw std::runtime_error(errorStr);
-			}		
+			}
 		}
 	}
 }
@@ -208,6 +208,47 @@ void VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 			}
 		}
 	}
+}
+
+VkSurfaceCapabilitiesKHR VulkanApp::getSurfaceCapabilities()
+{
+	VkSurfaceCapabilitiesKHR capabilities = { };
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice_, surface_, &capabilities);
+
+	return capabilities;
+}
+
+VkSurfaceFormatKHR VulkanApp::getSurfaceFormat()
+{
+	uint32_t formatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice_, surface_, &formatCount, nullptr);
+	std::vector<VkSurfaceFormatKHR> formats(formatCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice_, surface_, &formatCount, formats.data());
+
+	if (formats[0].format == VK_FORMAT_UNDEFINED)
+		return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+
+	for (const auto& f : formats) {
+		if (f.format == VK_FORMAT_B8G8R8A8_UNORM && f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			return f;
+	}
+
+	return formats[0];	// for now
+}
+
+VkPresentModeKHR VulkanApp::getPresentMode()
+{
+	uint32_t presentModeCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice_, surface_, &presentModeCount, nullptr);
+	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice_, surface_, &presentModeCount, presentModes.data());
+
+	for (const auto& m : presentModes) {
+		if (m == VK_PRESENT_MODE_MAILBOX_KHR)
+			return m;
+	}
+
+	return presentModes[0];	// for now
 }
 
 // delete functions
