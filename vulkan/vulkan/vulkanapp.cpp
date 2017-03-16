@@ -3,27 +3,48 @@
 #include <vector>
 #include <iostream>		// for help
 
+VkResult CreateDebugReportCallbackEXT(VkInstance instance, 
+	const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, 
+	VkDebugReportCallbackEXT* pCallback) 
+{
+	auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, 
+		"vkCreateDebugReportCallbackEXT");
+
+	if (func != nullptr)
+		return func(instance, pCreateInfo, pAllocator, pCallback);
+	else
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, 
+	const VkAllocationCallbacks* pAllocator) 
+{
+	auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, 
+		"vkDestroyDebugReportCallbackEXT");
+
+	if (func != nullptr)
+		func(instance, callback, pAllocator);
+}
+
+
 void VulkanApp::initAppInfo()
 {
+	if (info_.enableValidationLayers)
+		info_.instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+
 	uint32_t extensionCount = 0;
 	auto extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
 
 	for (uint32_t i = 0; i < extensionCount; ++i)
 		info_.instanceExtensions.push_back(*(extensions + i));
-
-	// add desired extensions with info_.instanceExtensions.push_back(desiredExtension)
+	info_.instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 }
 
 void VulkanApp::run()
 {
 	initWindow();
 	initAppInfo();		// rename function
-
-	createInstance();
-	pickPhysicalDevice();
-	createDevice();
-	createSurface();
-	createSwapchain();
+	initVulkan();
 
 	showInfo();			// 
 
@@ -44,9 +65,23 @@ void VulkanApp::initWindow()
 
 }
 
+void VulkanApp::initVulkan()
+{
+	createInstance();
+
+	if (info_.enableValidationLayers)
+		setupDebugCallback();
+
+	pickPhysicalDevice();
+	createDevice();
+	createSurface();
+	createSwapchain();
+}
+
 void VulkanApp::createInstance()
 {
-	checkInstanceExtenstionSupport();
+	checkInstanceLayersSupport();
+	checkInstanceExtenstionsSupport();
 
 	VkApplicationInfo appInfo = { };
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -59,7 +94,8 @@ void VulkanApp::createInstance()
 	VkInstanceCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledLayerCount = 0;		// no layers
+	createInfo.enabledLayerCount = info_.instanceLayers.size();
+	createInfo.ppEnabledLayerNames = info_.instanceLayers.data();
 	createInfo.enabledExtensionCount = info_.instanceExtensions.size();
 	createInfo.ppEnabledExtensionNames = info_.instanceExtensions.data();
 
@@ -80,22 +116,25 @@ void VulkanApp::pickPhysicalDevice()
 
 	checkDeviceExtensionSupport(physicalDevices[0]);
 
-	physicalDevice_ = physicalDevices[0];		// now pick first physical device
+	physicalDevice_ = physicalDevices[0];		// now pick first physical device 
 }
 
 void VulkanApp::createDevice()
 {
+	float queuePripority = 1.0f;
+
+	// TODO: rewrite for using one or more queue families
 	VkDeviceQueueCreateInfo deviceQueueCreateInfo = { };
 	deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	deviceQueueCreateInfo.queueFamilyIndex = getFamilyIndex();
 	deviceQueueCreateInfo.queueCount = 1;
-	deviceQueueCreateInfo.pQueuePriorities = nullptr;	// default priority
+	deviceQueueCreateInfo.pQueuePriorities = &queuePripority;
 
 	VkDeviceCreateInfo deviceCreateInfo = { };
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-	deviceCreateInfo.enabledLayerCount = 0;			// no layers
+	deviceCreateInfo.enabledLayerCount = 0;			
 	deviceCreateInfo.enabledExtensionCount = info_.deviceExtensions.size();
 	deviceCreateInfo.ppEnabledExtensionNames = info_.deviceExtensions.data();
 	deviceCreateInfo.pEnabledFeatures = nullptr;
@@ -168,7 +207,29 @@ uint32_t VulkanApp::getFamilyIndex()
 //	return -1;
 }
 
-void VulkanApp::checkInstanceExtenstionSupport()
+void VulkanApp::checkInstanceLayersSupport()
+{
+	uint32_t layerCount = 0;
+	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+	std::vector<VkLayerProperties> layers(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, layers.data());
+
+	for (const auto& l : info_.instanceLayers) {
+		for (auto beg = layers.begin(); beg != layers.cend(); ++beg) {
+			if (strcmp(l, beg->layerName) == 0)
+				break;
+
+			if (beg + 1 == layers.cend()) {
+				std::string errorStr = "instance don't support"
+					+ std::string(l) + " layer!";
+				throw std::runtime_error(errorStr);
+			}	
+		}
+	}
+}
+
+void VulkanApp::checkInstanceExtenstionsSupport()
 {
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -210,6 +271,18 @@ void VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 	}
 }
 
+void VulkanApp::setupDebugCallback()
+{
+	VkDebugReportCallbackCreateInfoEXT createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+	createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+	createInfo.pfnCallback = debugCallback;
+
+	if (CreateDebugReportCallbackEXT(instance_, &createInfo, nullptr, &callback_) != VK_SUCCESS) {
+		throw std::runtime_error("failed to set up debug callback!");
+	}
+}
+
 VkSurfaceCapabilitiesKHR VulkanApp::getSurfaceCapabilities()
 {
 	VkSurfaceCapabilitiesKHR capabilities = { };
@@ -248,7 +321,7 @@ VkPresentModeKHR VulkanApp::getPresentMode()
 			return m;
 	}
 
-	return presentModes[0];	// for now
+	return presentModes[0];	
 }
 
 // delete functions
@@ -269,6 +342,11 @@ void VulkanApp::cleanup()
 		device_ = VK_NULL_HANDLE;
 	}
 
+	if (callback_) {
+		DestroyDebugReportCallbackEXT(instance_, callback_, nullptr);
+		callback_ = VK_NULL_HANDLE;
+	}
+
 	if (instance_) {
 		vkDestroyInstance(instance_, nullptr);
 		instance_ = VK_NULL_HANDLE;
@@ -280,6 +358,13 @@ VulkanApp::~VulkanApp()
 	cleanup();
 }
 
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char * layerPrefix, const char * msg, void * userData)
+{
+	std::cerr << "Validation layer: " << msg << std::endl;
+
+	return VK_FALSE;
+}
 
 // delete after relise
 void VulkanApp::showInfo()
@@ -306,7 +391,7 @@ void VulkanApp::showInfo()
 		std::cout << ext.extensionName << '\n';
 	std::cout << std::endl;
 
-	//--------------show device layers and properties---------------
+	//--------------show device layers and extensions---------------
 	if (physicalDevice_) {
 		vkEnumerateDeviceLayerProperties(physicalDevice_, &layerCount, nullptr);
 		layerProperties.resize(layerCount);
@@ -325,5 +410,38 @@ void VulkanApp::showInfo()
 		for (const auto& e : extensions)
 			std::cout << e.extensionName << '\n';
 		std::cout << std::endl;
+
+		// physical device properties
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+		vkGetPhysicalDeviceProperties(physicalDevice_, &physicalDeviceProperties);
+
+		std::cout << "Physical device properties\n";
+		std::cout << "Device name: " << physicalDeviceProperties.deviceName
+			<< "\nMax viewports: " << physicalDeviceProperties.limits.maxViewports
+			<< "\nMax viewport dimension: " << physicalDeviceProperties.limits.maxViewportDimensions[0]
+			<< "x" << physicalDeviceProperties.limits.maxViewportDimensions[1] << std::endl;
+		std::cout << std::endl;
+
+		// queue family properties
+		uint32_t queueFamilyPropertyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice_, &queueFamilyPropertyCount, nullptr);
+		std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice_, &queueFamilyPropertyCount, queueFamilyProperties.data());
+
+		std::cout << "Queue family properties";
+		for (uint32_t i = 0; i < queueFamilyPropertyCount; ++i) {
+			std::cout << "\nIndex: " << i
+				<< "\nQueue count: " << queueFamilyProperties[i].queueCount
+				<< "\nTimestamp valid bits: " << queueFamilyProperties[i].timestampValidBits
+				<< "\nFlags: ";
+
+			auto queueFlag = queueFamilyProperties[i].queueFlags;
+			if (queueFlag & VK_QUEUE_GRAPHICS_BIT)			std::cout << "-graphic ";
+			if (queueFlag & VK_QUEUE_COMPUTE_BIT)			std::cout << "-compute ";
+			if (queueFlag & VK_QUEUE_TRANSFER_BIT)			std::cout << "-transfer ";
+			if (queueFlag & VK_QUEUE_SPARSE_BINDING_BIT)	std::cout << "-sparse ";
+			std::cout << std::endl;
+		}
 	}
 }
+

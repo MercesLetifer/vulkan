@@ -15,5 +15,6 @@ int main()
 		return -1;
 	}
 
+	_getch();
 	return 0;
 }
