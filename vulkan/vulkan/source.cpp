@@ -1,5 +1,6 @@
 #include "vulkanapp.h"
 #include <iostream>
+#include <conio.h>
 
 int main()
 {
@@ -10,6 +11,7 @@ int main()
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
+		_getch();
 		return -1;
 	}
 
