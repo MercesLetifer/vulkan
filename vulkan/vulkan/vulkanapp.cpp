@@ -1,7 +1,7 @@
 #include "vulkanapp.h"
 #include <stdexcept>
 #include <vector>
-#include <iostream>		// for help
+#include <iostream>		
 
 VkResult CreateDebugReportCallbackEXT(VkInstance instance, 
 	const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, 
@@ -46,7 +46,7 @@ void VulkanApp::run()
 	initAppInfo();		// rename function
 	initVulkan();
 
-	showInfo();			// 
+	showInfo();			// for help
 
 	mainLoop();
 }
@@ -72,9 +72,10 @@ void VulkanApp::initVulkan()
 	if (info_.enableValidationLayers)
 		setupDebugCallback();
 
+	createSurface();
 	pickPhysicalDevice();
 	createDevice();
-	createSurface();
+	
 	createSwapchain();
 }
 
@@ -114,26 +115,46 @@ void VulkanApp::pickPhysicalDevice()
 	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(instance_, &physicalDeviceCount, physicalDevices.data());
 
-	checkDeviceExtensionSupport(physicalDevices[0]);
+	for (const auto& device : physicalDevices) {
+		if (checkDeviceExtensionSupport(device)) {
+			auto familyIndices = getFamilyIndices(device);
+			if (familyIndices.graphicFamily > 0 && familyIndices.presentFamily > 0) {
+				physicalDevice_ = device;
+				return;
+			}
+		}
+	}
 
-	physicalDevice_ = physicalDevices[0];		// now pick first physical device 
+	// if no devices with extension and surface support throw exception
+	throw std::runtime_error("failed to pick suitable device!");
 }
 
 void VulkanApp::createDevice()
 {
 	float queuePripority = 1.0f;
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
-	// TODO: rewrite for using one or more queue families
-	VkDeviceQueueCreateInfo deviceQueueCreateInfo = { };
-	deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	deviceQueueCreateInfo.queueFamilyIndex = getFamilyIndex();
-	deviceQueueCreateInfo.queueCount = 1;
-	deviceQueueCreateInfo.pQueuePriorities = &queuePripority;
+	auto familyIndices = getFamilyIndices(physicalDevice_);
+	VkDeviceQueueCreateInfo deviceGraphicQueueCreateInfo = {};
+	deviceGraphicQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	deviceGraphicQueueCreateInfo.queueFamilyIndex = (uint32_t)familyIndices.graphicFamily;
+	deviceGraphicQueueCreateInfo.queueCount = 1;
+	deviceGraphicQueueCreateInfo.pQueuePriorities = &queuePripority;
+	queueCreateInfos.push_back(deviceGraphicQueueCreateInfo);
+	
+	if (familyIndices.graphicFamily != familyIndices.presentFamily) {
+		VkDeviceQueueCreateInfo devicePresentQueueCreateInfo = { };
+		devicePresentQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		devicePresentQueueCreateInfo.queueFamilyIndex = (uint32_t)familyIndices.presentFamily;
+		devicePresentQueueCreateInfo.queueCount = 1;
+		devicePresentQueueCreateInfo.pQueuePriorities = &queuePripority;
+		queueCreateInfos.push_back(devicePresentQueueCreateInfo);
+	}
 
 	VkDeviceCreateInfo deviceCreateInfo = { };
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
+	deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 	deviceCreateInfo.enabledLayerCount = 0;			
 	deviceCreateInfo.enabledExtensionCount = info_.deviceExtensions.size();
 	deviceCreateInfo.ppEnabledExtensionNames = info_.deviceExtensions.data();
@@ -141,6 +162,9 @@ void VulkanApp::createDevice()
 
 	if (vkCreateDevice(physicalDevice_, &deviceCreateInfo, nullptr, &device_) != VK_SUCCESS)
 		throw std::runtime_error("failed to create logical device");
+
+	vkGetDeviceQueue(device_, familyIndices.graphicFamily, 0, &graphicQueue_);
+	vkGetDeviceQueue(device_, familyIndices.presentFamily, 0, &presentQueue_);
 }
 
 void VulkanApp::createSurface()
@@ -185,26 +209,31 @@ void VulkanApp::mainLoop()
 }
 
 // help functions
-uint32_t VulkanApp::getFamilyIndex()
+VulkanApp::FamilyIndices VulkanApp::getFamilyIndices(VkPhysicalDevice device)
 {
-	// TODO: rewrite
-	uint32_t queueFamilyPropertyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice_, &queueFamilyPropertyCount, nullptr);
+	uint32_t familyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> familyProperties(familyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, familyProperties.data());
 
-	std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice_, &queueFamilyPropertyCount, 
-		queueFamilyProperties.data());
+	FamilyIndices familyIndices = { };
+	for (uint32_t index = 0; index < familyProperties.size(); ++index) {
+		if (familyProperties[index].queueCount > 0) {
+			if (familyProperties[index].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+				familyIndices.graphicFamily = index;
 
-	for (uint32_t i = 0; i < queueFamilyProperties.size(); ++i) {
-		auto fp = queueFamilyProperties[i];
-		
-		if (fp.queueCount > 0 && fp.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-			return i;
+			VkBool32 supported = false;
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, index, surface_, &supported);
+			if (supported)
+				familyIndices.presentFamily = index;
+
+			if (familyIndices.graphicFamily > 0 && familyIndices.presentFamily > 0)
+				return familyIndices;
+		}
 	}
 
-	// if function is not find need queue family when it's generate an exception
-	throw std::runtime_error("failed to get need queue family");
-//	return -1;
+	// generate an exception if graphics and present families not supported
+	throw std::runtime_error("failed to find suitable queue families");
 }
 
 void VulkanApp::checkInstanceLayersSupport()
@@ -250,7 +279,7 @@ void VulkanApp::checkInstanceExtenstionsSupport()
 	}
 }
 
-void VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
 	uint32_t extensionCount = 0;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -262,13 +291,12 @@ void VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 			if (strcmp(beg->extensionName, de) == 0)
 				break;
 			
-			if (beg + 1 == extensions.cend()) {
-				std::string errorStr = "device don't support "
-					+ std::string(de) + " extension";
-				throw std::runtime_error(errorStr);
-			}
+			if (beg + 1 == extensions.cend())
+				return false;
 		}
 	}
+
+	return true;
 }
 
 void VulkanApp::setupDebugCallback()
@@ -332,11 +360,6 @@ void VulkanApp::cleanup()
 		swapChain_ = VK_NULL_HANDLE;
 	}
 
-	if (surface_) {
-		vkDestroySurfaceKHR(instance_, surface_, nullptr);
-		surface_ = VK_NULL_HANDLE;
-	}
-
 	if (device_) {
 		vkDestroyDevice(device_, nullptr);
 		device_ = VK_NULL_HANDLE;
@@ -345,6 +368,11 @@ void VulkanApp::cleanup()
 	if (callback_) {
 		DestroyDebugReportCallbackEXT(instance_, callback_, nullptr);
 		callback_ = VK_NULL_HANDLE;
+	}
+
+	if (surface_) {
+		vkDestroySurfaceKHR(instance_, surface_, nullptr);
+		surface_ = VK_NULL_HANDLE;
 	}
 
 	if (instance_) {

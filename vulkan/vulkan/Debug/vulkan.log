@@ -1,3 +1,8 @@
 ﻿  vulkanapp.cpp
-  vulkan.vcxproj -> D:\Repository\vulkan\vulkan\Debug\vulkan.exe
-  vulkan.vcxproj -> D:\Repository\vulkan\vulkan\Debug\vulkan.pdb (Partial PDB)
+  Создание кода...
+  Компиляция...
+  source.cpp
+  Создание кода...
+LINK : warning LNK4098: сшсышюЄхър яю єьюыўрэш■ "MSVCRT" яЁюЄштюЁхўшЄ шёяюы№чютрэш■ фЁєушї сшсышюЄхъ; шёяюы№чєщЄх ярЁрьхЄЁ /NODEFAULTLIB:library
+  vulkan.vcxproj -> D:\Alex\VK\vulkan\vulkan\Debug\vulkan.exe
+  vulkan.vcxproj -> D:\Alex\VK\vulkan\vulkan\Debug\vulkan.pdb (Partial PDB)

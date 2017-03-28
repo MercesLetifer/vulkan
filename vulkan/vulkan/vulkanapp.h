@@ -8,10 +8,12 @@
 class VulkanApp {
 	GLFWwindow*	window_ = nullptr;
 	VkInstance instance_ = VK_NULL_HANDLE;
+	VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 	VkDebugReportCallbackEXT callback_;
 	VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
 	VkDevice device_ = VK_NULL_HANDLE;
-	VkSurfaceKHR surface_ = VK_NULL_HANDLE;
+	VkQueue graphicQueue_ = VK_NULL_HANDLE;
+	VkQueue presentQueue_ = VK_NULL_HANDLE;
 	VkSwapchainKHR swapChain_ = VK_NULL_HANDLE;
 
 	struct {					// struct for application info
@@ -36,6 +38,11 @@ class VulkanApp {
 
 	} info_;
 
+	struct FamilyIndices {
+		int32_t graphicFamily = -1;
+		int32_t presentFamily = -1;
+	};
+
 private:
 	void initAppInfo();
 	void initWindow();		// main functions
@@ -51,10 +58,10 @@ private:
 	void cleanup();
 
 private:		// help functions
-	uint32_t getFamilyIndex();
+	FamilyIndices getFamilyIndices(VkPhysicalDevice device);
 	void checkInstanceLayersSupport();
 	void checkInstanceExtenstionsSupport();
-	void checkDeviceExtensionSupport(VkPhysicalDevice);
+	bool checkDeviceExtensionSupport(VkPhysicalDevice);
 	void setupDebugCallback();
 	
 	// functions for creating swap chain
