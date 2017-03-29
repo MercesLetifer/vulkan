@@ -188,15 +188,55 @@ void VulkanApp::createSwapchain()
 	createInfo.imageExtent = capabilities.currentExtent;	
 	createInfo.imageArrayLayers = 1;						
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	auto indices = getFamilyIndices(physicalDevice_);
+	uint32_t familyIndeces[] = { (uint32_t)indices.graphicFamily, (uint32_t)indices.presentFamily };
+	if (indices.graphicFamily != indices.presentFamily) {
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = familyIndeces;
+	}
+	else {
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
+	
 	createInfo.preTransform = capabilities.currentTransform;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(device_, &createInfo, nullptr, &swapChain_) != VK_SUCCESS)
-		throw std::runtime_error("failed to create swap chain");
+	if (vkCreateSwapchainKHR(device_, &createInfo, nullptr, &swapchain_) != VK_SUCCESS)
+		throw std::runtime_error("failed to create swapchain");
+
+	// get swapchain images
+	uint32_t imageCount = 0;
+	vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, nullptr);
+	std::vector<VkImage> swapchainImages(imageCount);
+	vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, swapchainImages.data());
+
+	// create swapchain image views
+	imageViews_.resize(imageCount);
+
+	for (uint32_t i = 0; i < imageCount; ++i) {
+		VkImageViewCreateInfo imageViewCreateInfo = { };
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.image = swapchainImages[i];
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = format.format;
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(device_, &imageViewCreateInfo, nullptr, &imageViews_[i]) != VK_SUCCESS)
+			throw std::runtime_error("failed to create image view");
+	}
 }
 
 void VulkanApp::mainLoop()
@@ -355,9 +395,16 @@ VkPresentModeKHR VulkanApp::getPresentMode()
 // delete functions
 void VulkanApp::cleanup()
 {
-	if (swapChain_) {
-		vkDestroySwapchainKHR(device_, swapChain_, nullptr);
-		swapChain_ = VK_NULL_HANDLE;
+	for (auto& imageView : imageViews_) {
+		if (imageView) {
+			vkDestroyImageView(device_, imageView, nullptr);
+			imageView = VK_NULL_HANDLE;
+		}	
+	}
+
+	if (swapchain_) {
+		vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+		swapchain_ = VK_NULL_HANDLE;
 	}
 
 	if (device_) {

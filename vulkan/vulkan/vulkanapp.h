@@ -14,7 +14,8 @@ class VulkanApp {
 	VkDevice device_ = VK_NULL_HANDLE;
 	VkQueue graphicQueue_ = VK_NULL_HANDLE;
 	VkQueue presentQueue_ = VK_NULL_HANDLE;
-	VkSwapchainKHR swapChain_ = VK_NULL_HANDLE;
+	VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+	std::vector<VkImageView> imageViews_;
 
 	struct {					// struct for application info
 		int WIDTH = 800;
