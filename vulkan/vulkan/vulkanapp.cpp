@@ -118,7 +118,7 @@ void VulkanApp::pickPhysicalDevice()
 	for (const auto& device : physicalDevices) {
 		if (checkDeviceExtensionSupport(device)) {
 			auto familyIndices = getFamilyIndices(device);
-			if (familyIndices.graphicFamily > 0 && familyIndices.presentFamily > 0) {
+			if (familyIndices.graphicFamily >= 0 && familyIndices.presentFamily >= 0) {
 				physicalDevice_ = device;
 				return;
 			}
@@ -267,7 +267,7 @@ VulkanApp::FamilyIndices VulkanApp::getFamilyIndices(VkPhysicalDevice device)
 			if (supported)
 				familyIndices.presentFamily = index;
 
-			if (familyIndices.graphicFamily > 0 && familyIndices.presentFamily > 0)
+			if (familyIndices.graphicFamily >= 0 && familyIndices.presentFamily >= 0)
 				return familyIndices;
 		}
 	}
