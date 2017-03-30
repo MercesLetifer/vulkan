@@ -77,6 +77,7 @@ void VulkanApp::initVulkan()
 	createDevice();
 	
 	createSwapchain();
+	createRenderPass();
 }
 
 void VulkanApp::createInstance()
@@ -239,6 +240,49 @@ void VulkanApp::createSwapchain()
 	}
 }
 
+void VulkanApp::createRenderPass()
+{
+	auto format = getSurfaceFormat();
+
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = format.format;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef = { };
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpassDescription = { };
+	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescription.colorAttachmentCount = 1;
+	subpassDescription.pColorAttachments = &colorAttachmentRef;
+
+	VkSubpassDependency subpassDependency = { };
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpassDescription;
+	createInfo.dependencyCount = 1;
+	createInfo.pDependencies = &subpassDependency;
+
+	if (vkCreateRenderPass(device_, &createInfo, nullptr, &renderPass_) != VK_SUCCESS)
+		throw std::runtime_error("failed to create render pass");
+
+}
+
 void VulkanApp::mainLoop()
 {
 	while (!glfwWindowShouldClose(window_)) 
@@ -395,6 +439,11 @@ VkPresentModeKHR VulkanApp::getPresentMode()
 // delete functions
 void VulkanApp::cleanup()
 {
+	if (renderPass_) {
+		vkDestroyRenderPass(device_, renderPass_, nullptr);
+		renderPass_ = VK_NULL_HANDLE;
+	}
+
 	for (auto& imageView : imageViews_) {
 		if (imageView) {
 			vkDestroyImageView(device_, imageView, nullptr);
