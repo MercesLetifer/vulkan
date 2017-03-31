@@ -4,6 +4,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW\glfw3.h>
 #include <vector>
+#include <string>
 
 class VulkanApp {
 	GLFWwindow*	window_ = nullptr;
@@ -56,6 +57,7 @@ private:
 	void createSurface();
 	void createSwapchain();
 	void createRenderPass();
+	void createGraphicsPipeline();
 
 	void mainLoop();
 	void cleanup();
@@ -66,6 +68,7 @@ private:		// help functions
 	void checkInstanceExtenstionsSupport();
 	bool checkDeviceExtensionSupport(VkPhysicalDevice);
 	void setupDebugCallback();
+	std::vector<char> readFile(const std::string& filename);
 	
 	// functions for creating swap chain
 	VkSurfaceCapabilitiesKHR getSurfaceCapabilities();

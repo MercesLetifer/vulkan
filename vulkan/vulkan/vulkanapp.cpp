@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>		
+#include <fstream>
 
 VkResult CreateDebugReportCallbackEXT(VkInstance instance, 
 	const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, 
@@ -280,7 +281,11 @@ void VulkanApp::createRenderPass()
 
 	if (vkCreateRenderPass(device_, &createInfo, nullptr, &renderPass_) != VK_SUCCESS)
 		throw std::runtime_error("failed to create render pass");
+}
 
+void VulkanApp::createGraphicsPipeline()
+{
+	
 }
 
 void VulkanApp::mainLoop()
@@ -395,6 +400,23 @@ void VulkanApp::setupDebugCallback()
 	}
 }
 
+std::vector<char> VulkanApp::readFile(const std::string& filename)
+{
+	std::ifstream file(filename, std::ios::in | std::ios::ate | std::ios::binary);
+	if (!file.is_open())
+		throw std::runtime_error("failed to open file!");
+
+	size_t length = file.tellg();					// or use function gcount?
+	std::vector<char> buffer(length);
+	file.seekg(0);
+
+	char ch = ' ';
+	while (file >> ch)
+		buffer.push_back(ch);
+
+	return buffer;
+}
+
 VkSurfaceCapabilitiesKHR VulkanApp::getSurfaceCapabilities()
 {
 	VkSurfaceCapabilitiesKHR capabilities = { };
@@ -483,7 +505,7 @@ VulkanApp::~VulkanApp()
 }
 
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char * layerPrefix, const char * msg, void * userData)
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char* layerPrefix, const char* msg, void* userData)
 {
 	std::cerr << "Validation layer: " << msg << std::endl;
 
