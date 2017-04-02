@@ -285,6 +285,7 @@ void VulkanApp::createRenderPass()
 
 void VulkanApp::createGraphicsPipeline()
 {
+
 	
 }
 
@@ -479,6 +480,7 @@ void VulkanApp::cleanup()
 	}
 
 	if (device_) {
+		vkDeviceWaitIdle(device_);
 		vkDestroyDevice(device_, nullptr);
 		device_ = VK_NULL_HANDLE;
 	}
@@ -586,6 +588,11 @@ void VulkanApp::showInfo()
 			if (queueFlag & VK_QUEUE_COMPUTE_BIT)			std::cout << "-compute ";
 			if (queueFlag & VK_QUEUE_TRANSFER_BIT)			std::cout << "-transfer ";
 			if (queueFlag & VK_QUEUE_SPARSE_BINDING_BIT)	std::cout << "-sparse ";
+
+			auto imageGran = queueFamilyProperties[i].minImageTransferGranularity;
+			std::cout << "\nMin image transfer granularity(WxHxD): "
+				<< imageGran.width << 'x' << imageGran.height << 'x' << imageGran.depth;
+
 			std::cout << std::endl;
 		}
 	}

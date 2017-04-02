@@ -1,4 +1,4 @@
 ﻿  vulkanapp.cpp
-d:\alex\vk\vulkan\vulkan\vulkan\vulkanapp.cpp(409): warning C4244: инициализация: преобразование "std::streamoff" в "std::size_t", возможна потеря данных
-  vulkan.vcxproj -> D:\Alex\VK\vulkan\vulkan\Debug\vulkan.exe
-  vulkan.vcxproj -> D:\Alex\VK\vulkan\vulkan\Debug\vulkan.pdb (Partial PDB)
+d:\vulkanapi\vulkan\vulkan\vulkan\vulkanapp.cpp(410): warning C4244: инициализация: преобразование "std::streamoff" в "std::size_t", возможна потеря данных
+  vulkan.vcxproj -> D:\VulkanAPI\vulkan\vulkan\Debug\vulkan.exe
+  vulkan.vcxproj -> D:\VulkanAPI\vulkan\vulkan\Debug\vulkan.pdb (Partial PDB)
