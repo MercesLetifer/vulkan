@@ -289,6 +289,18 @@ void VulkanApp::createGraphicsPipeline()
 	
 }
 
+void VulkanApp::createCommandPool()
+{
+	auto indices = getFamilyIndices(physicalDevice_);
+
+	VkCommandPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	createInfo.queueFamilyIndex = indices.graphicFamily;
+
+	if (vkCreateCommandPool(device_, &createInfo, nullptr, &commandPool_) != VK_SUCCESS)
+		throw std::runtime_error("failed to create command pool");
+}
+
 void VulkanApp::mainLoop()
 {
 	while (!glfwWindowShouldClose(window_)) 
@@ -477,6 +489,11 @@ void VulkanApp::cleanup()
 	if (swapchain_) {
 		vkDestroySwapchainKHR(device_, swapchain_, nullptr);
 		swapchain_ = VK_NULL_HANDLE;
+	}
+
+	if (commandPool_) {
+		vkDestroyCommandPool(device_, commandPool_, nullptr);
+		commandPool_ = VK_NULL_HANDLE;
 	}
 
 	if (device_) {

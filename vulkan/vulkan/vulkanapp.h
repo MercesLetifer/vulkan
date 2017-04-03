@@ -15,6 +15,7 @@ class VulkanApp {
 	VkDevice device_ = VK_NULL_HANDLE;
 	VkQueue graphicQueue_ = VK_NULL_HANDLE;
 	VkQueue presentQueue_ = VK_NULL_HANDLE;
+	VkCommandPool commandPool_ = VK_NULL_HANDLE;
 	VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
 	std::vector<VkImageView> imageViews_;
 	VkRenderPass renderPass_ = VK_NULL_HANDLE;
@@ -23,7 +24,7 @@ class VulkanApp {
 		int WIDTH = 800;
 		int HEIGHT = 600;
 		const char* title = "Vulkan application";
-
+		
 		// layers and extensions
 		std::vector<const char*> instanceLayers;
 		std::vector<const char*> instanceExtensions;
@@ -58,6 +59,7 @@ private:
 	void createSwapchain();
 	void createRenderPass();
 	void createGraphicsPipeline();
+	void createCommandPool();
 
 	void mainLoop();
 	void cleanup();
