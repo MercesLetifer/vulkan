@@ -19,6 +19,14 @@ class VulkanApp {
 	VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
 	std::vector<VkImageView> imageViews_;
 	VkRenderPass renderPass_ = VK_NULL_HANDLE;
+	VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
+	VkPipeline graphicPipeline_ = VK_NULL_HANDLE;
+	std::vector<VkFramebuffer> framebuffers_;
+	std::vector<VkCommandBuffer> commandBuffers_;
+
+	// semaphores
+	VkSemaphore imageAvailableSemaphore_ = VK_NULL_HANDLE;
+	VkSemaphore renderFinishedSemaphore_ = VK_NULL_HANDLE;
 
 	struct {					// struct for application info
 		int WIDTH = 800;
@@ -40,6 +48,10 @@ class VulkanApp {
 		bool enableValidationLayers = true;
 #endif
 
+		// shader files
+		const char* vertexFile = "shaders/vert.spv";
+		const char* fragmentFile = "shaders/frag.spv";
+
 	} info_;
 
 	struct FamilyIndices {
@@ -60,6 +72,11 @@ private:
 	void createRenderPass();
 	void createGraphicsPipeline();
 	void createCommandPool();
+	void createFramebuffers();
+	void createCommandBuffers();
+	void createSemaphores();
+
+	void drawFrame();
 
 	void mainLoop();
 	void cleanup();
@@ -70,7 +87,8 @@ private:		// help functions
 	void checkInstanceExtenstionsSupport();
 	bool checkDeviceExtensionSupport(VkPhysicalDevice);
 	void setupDebugCallback();
-	std::vector<char> readFile(const std::string& filename);
+	static std::vector<char> readFile(const std::string& filename);
+	void createShaderModule(const std::vector<char>&, VkShaderModule&);
 	
 	// functions for creating swap chain
 	VkSurfaceCapabilitiesKHR getSurfaceCapabilities();
