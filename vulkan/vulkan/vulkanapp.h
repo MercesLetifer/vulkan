@@ -5,9 +5,21 @@
 #include <GLFW\glfw3.h>
 #include <vector>
 #include <string>
+#include <glm\glm.hpp>
+
+struct Vertex {
+	glm::vec2 pos;
+	glm::vec3 color;
+};
+
+const std::vector<Vertex> vertices = {
+	{ { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+	{ { 0.5f, 0.5f  }, { 0.0f, 1.0f, 0.0f } },
+	{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
+};
 
 class VulkanApp {
-	GLFWwindow*	window_ = nullptr;
+	GLFWwindow*	window_;
 	VkInstance instance_ = VK_NULL_HANDLE;
 	VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 	VkDebugReportCallbackEXT callback_;
@@ -27,6 +39,10 @@ class VulkanApp {
 	// semaphores
 	VkSemaphore imageAvailableSemaphore_ = VK_NULL_HANDLE;
 	VkSemaphore renderFinishedSemaphore_ = VK_NULL_HANDLE;
+
+	// buffers
+	VkBuffer vertexBuffer_ = VK_NULL_HANDLE;
+	VkDeviceMemory vertexBufferMemory_ = VK_NULL_HANDLE;
 
 	struct {					// struct for application info
 		int WIDTH = 800;
@@ -81,6 +97,11 @@ private:
 	void mainLoop();
 	void cleanup();
 
+	void recreateSwapchain();
+	static void onWindowResized(GLFWwindow*, int width, int height);
+
+	void createVertexBuffer();
+
 private:		// help functions
 	FamilyIndices getFamilyIndices(VkPhysicalDevice device);
 	void checkInstanceLayersSupport();
@@ -89,6 +110,7 @@ private:		// help functions
 	void setupDebugCallback();
 	static std::vector<char> readFile(const std::string& filename);
 	void createShaderModule(const std::vector<char>&, VkShaderModule&);
+	uint32_t findMemoryType(uint32_t, VkMemoryPropertyFlags);
 	
 	// functions for creating swap chain
 	VkSurfaceCapabilitiesKHR getSurfaceCapabilities();

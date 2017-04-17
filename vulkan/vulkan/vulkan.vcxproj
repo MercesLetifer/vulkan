@@ -74,7 +74,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Program Files\Windows Kits\10\Include\10.0.15063.0\ucrt;C:\VulkanSDK\1.0.46.0\Include;C:\Libraries\glfw-3.2.1.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Downloads\Libraries\glm-0.9.8.4\glm;C:\Program Files\Windows Kits\10\Include\10.0.15063.0\ucrt;C:\VulkanSDK\1.0.46.0\Include;C:\Libraries\glfw-3.2.1.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;C:\VulkanSDK\1.0.46.0\Lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
