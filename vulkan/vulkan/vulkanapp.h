@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <glm\glm.hpp>
+#include "timer.h"
 
 struct Vertex {
 	glm::vec2 pos;
@@ -13,9 +14,9 @@ struct Vertex {
 };
 
 const std::vector<Vertex> vertices = {
-	{ { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+	{ { 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
 	{ { 0.5f, 0.5f  }, { 0.0f, 1.0f, 0.0f } },
-	{ { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
+	{ { -0.5f, 0.5f }, { 1.0f, 0.0f, 1.0f } }
 };
 
 class VulkanApp {
@@ -43,6 +44,9 @@ class VulkanApp {
 	// buffers
 	VkBuffer vertexBuffer_ = VK_NULL_HANDLE;
 	VkDeviceMemory vertexBufferMemory_ = VK_NULL_HANDLE;
+
+	// timer for fps
+	Timer timer_;
 
 	struct {					// struct for application info
 		int WIDTH = 800;
@@ -100,7 +104,9 @@ private:
 	void recreateSwapchain();
 	static void onWindowResized(GLFWwindow*, int width, int height);
 
+	void createBuffer(VkDeviceSize, VkBufferUsageFlags, VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&);
 	void createVertexBuffer();
+	void copyBuffer(VkBuffer, VkBuffer, VkDeviceSize);
 
 private:		// help functions
 	FamilyIndices getFamilyIndices(VkPhysicalDevice device);
